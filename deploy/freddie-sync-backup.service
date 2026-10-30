@@ -1,0 +1,23 @@
+[Unit]
+Description=Verified backup of Freddie sync
+Requires=freddie-sync.service
+After=freddie-sync.service
+
+[Service]
+Type=oneshot
+User=freddie-sync
+Group=freddie-sync
+UMask=0077
+ExecStart=/opt/freddie-sync/current/backup.sh
+Nice=10
+IOSchedulingClass=idle
+Environment=GOMEMLIMIT=128MiB
+MemoryMax=256M
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=full
+ProtectHome=true
+RestrictAddressFamilies=AF_UNIX
+CapabilityBoundingSet=
+TimeoutStartSec=1h

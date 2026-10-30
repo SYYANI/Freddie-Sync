@@ -1,0 +1,46 @@
+[Unit]
+Description=Freddie personal library sync
+After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=freddie-sync
+Group=freddie-sync
+UMask=0077
+StateDirectory=freddie-sync
+StateDirectoryMode=0700
+RuntimeDirectory=freddie-sync
+RuntimeDirectoryMode=0700
+EnvironmentFile=/etc/freddie-sync/serve.env
+ExecStart=/opt/freddie-sync/current/freddie-sync serve --host ${FREDDIE_SYNC_HOST}
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=40
+Environment=GOMEMLIMIT=128MiB
+Environment=GOGC=50
+MemoryMax=256M
+TasksMax=64
+LimitNOFILE=1024
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX AF_INET
+IPAddressDeny=any
+IPAddressAllow=localhost
+
+[Install]
+WantedBy=multi-user.target

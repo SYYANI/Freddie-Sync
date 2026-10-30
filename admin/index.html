@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Freddie 同步管理</title>
+<link rel="stylesheet" href="admin.css">
+<script src="admin.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <h1>Freddie 同步</h1>
+  <span id="server" class="muted"></span>
+  <button id="new-library" class="primary" type="button">新建库</button>
+</header>
+<p id="error" class="error" role="alert" hidden></p>
+<main id="libraries" aria-busy="true"></main>
+<details id="inactive" class="inactive" hidden>
+  <summary></summary>
+  <div></div>
+</details>
+<dialog id="dialog" aria-labelledby="dialog-title">
+  <form id="dialog-form">
+    <h2 id="dialog-title"></h2>
+    <div id="dialog-body"></div>
+    <div class="dialog-actions">
+      <button id="dialog-cancel" type="button">取消</button>
+      <button id="dialog-submit" type="submit" class="primary"></button>
+    </div>
+  </form>
+</dialog>
+</body>
+</html>

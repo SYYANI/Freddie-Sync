@@ -1,0 +1,4 @@
+/bin/
+/var/
+/.local/
+__pycache__/
