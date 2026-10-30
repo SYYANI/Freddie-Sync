@@ -1,6 +1,7 @@
 # Freddie Sync Server
 
-[Freddie](https://github.com/SYYANI/Freddie)（ReadPaper）Mac / iPad 论文库的自托管同步后端。
+[Freddie](https://github.com/SYYANI/Freddie)（ReadPaper）论文库的自托管同步后端。Mac / iPad 原生版和
+Windows / Linux / macOS 的跨平台版（Electron）都可以接入，并同步同一个库。
 服务代码与原生 App 独立，不改 SwiftData schema，不复制或共享正在使用的 `ReadPaper.store`。
 
 **Freddie 不内置任何同步服务器。** 由部署方在自己的域名上部署本服务，为每台设备签发凭证
@@ -209,8 +210,10 @@ payload 是客户端定义的 JSON 对象，服务不理解或执行其内容；
 
 ## 客户端约定
 
-Freddie 原生客户端（`ReadPaper/Services/LibrarySync/`）已实现持久化 outbox、拉取应用和冲突 UI；
-修改客户端或实现其他客户端时遵守以下约定：
+Freddie 原生客户端（`ReadPaper/Services/LibrarySync/`）和跨平台版的移植（`electron/main/sync/`）
+都已实现持久化 outbox、拉取应用和冲突 UI。payload 的 `documentHash` 指向文档 blob，各客户端会重新
+编码已应用的文档，所以同一内容必须编码成相同字节（原生 `JSONEncoder`：键排序、UUID 大写、毫秒日期），
+否则客户端之间会反复重传。修改客户端或实现其他客户端时遵守以下约定：
 
 1. 从 SwiftData 导出可版本化 DTO，保留原始 UUID；禁止上传本机绝对路径或系统设置、密钥。
    附件本地路径由 PaperFileStore 在当前设备重建。同步状态单独持久化，不改已有 SwiftData
