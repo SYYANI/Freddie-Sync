@@ -408,6 +408,14 @@ func (a *API) adminHandler() http.Handler {
 	mux.HandleFunc("GET /{$}", page("index.html", "text/html; charset=utf-8"))
 	mux.HandleFunc("GET /admin.css", page("admin.css", "text/css; charset=utf-8"))
 	mux.HandleFunc("GET /admin.js", page("admin.js", "text/javascript; charset=utf-8"))
+	// Cheap liveness probe for container health checks; reveals nothing.
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		if err := a.store.db.View(func(_ *bolt.Tx) error { return nil }); err != nil {
+			writeError(w, err)
+			return
+		}
+		w.WriteHeader(204)
+	})
 	mux.HandleFunc("GET /libraries", func(w http.ResponseWriter, r *http.Request) {
 		libraries, err := a.store.libraries(a.seenSnapshot())
 		if err != nil {

@@ -36,7 +36,7 @@ func main() {
 
 func run(args []string) error {
 	if len(args) == 0 {
-		return errors.New("usage: freddie-sync serve|library-add|library-list|library-delete|device-add|device-list|device-revoke|backup|verify|restore|version")
+		return errors.New("usage: freddie-sync serve|health|library-add|library-list|library-delete|device-add|device-list|device-revoke|backup|verify|restore|version")
 	}
 	command := args[0]
 	fs := flag.NewFlagSet(command, flag.ContinueOnError)
@@ -47,7 +47,8 @@ func run(args []string) error {
 		return nil
 	case "serve":
 		data := fs.String("data", "/var/lib/freddie-sync", "Private data directory")
-		listen := fs.String("listen", "127.0.0.1:17483", "Loopback HTTP address behind TLS proxy")
+		listen := fs.String("listen", "127.0.0.1:17483", "HTTP address behind TLS proxy")
+		allowNonLoopback := fs.Bool("allow-non-loopback", false, "Allow non-loopback HTTP inside an isolated container network")
 		host := fs.String("host", "", "Public hostname clients use to reach this server (required)")
 		publicURL := fs.String("public-url", "", "Sync URL written into new credentials (default https://HOST/freddie-sync/)")
 		blobQuota := fs.Uint64("blob-quota", 10<<30, "Per-library immutable file quota, bytes")
@@ -61,9 +62,8 @@ func run(args []string) error {
 		if os.Geteuid() == 0 {
 			return errors.New("run the service as a dedicated unprivileged user")
 		}
-		h, _, err := net.SplitHostPort(*listen)
-		if err != nil || net.ParseIP(h) == nil || !net.ParseIP(h).IsLoopback() {
-			return errors.New("HTTP listener must use a loopback IP")
+		if err := checkListenAddress(*listen, *allowNonLoopback); err != nil {
+			return err
 		}
 		store, err := openStore(*data, *blobQuota, *metadataQuota)
 		if err != nil {
@@ -74,6 +74,11 @@ func run(args []string) error {
 			return errors.New("public URL must use HTTPS")
 		}
 		return serve(store, *listen, *socket, *host, *publicURL)
+	case "health":
+		if err := fs.Parse(args[1:]); err != nil {
+			return err
+		}
+		return adminCall(*socket, "GET", "/health", nil, io.Discard)
 	case "library-add":
 		name := fs.String("name", "", "Library name, for example the person it belongs to")
 		id := fs.String("id", "", "Library ID; empty generates one")
@@ -457,6 +462,20 @@ func backup(socket, data, out string) error {
 		return err
 	}
 	return json.NewEncoder(os.Stdout).Encode(map[string]string{"status": "verified", "backup": strings.TrimSuffix(out, "/")})
+}
+
+// checkListenAddress keeps the HTTP listener on loopback unless a container
+// network, whose host-side publication is loopback-only, explicitly opts out.
+func checkListenAddress(listen string, allowNonLoopback bool) error {
+	h, _, err := net.SplitHostPort(listen)
+	ip := net.ParseIP(h)
+	if err != nil || ip == nil {
+		return errors.New("HTTP listener must use a literal IP address and port")
+	}
+	if !ip.IsLoopback() && !allowNonLoopback {
+		return errors.New("HTTP listener must use a loopback IP; isolated container networks can opt in with --allow-non-loopback")
+	}
+	return nil
 }
 
 // validHostname accepts a bare DNS name: no scheme, port, path or trailing dot.

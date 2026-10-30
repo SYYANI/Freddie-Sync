@@ -427,6 +427,9 @@ func TestAdminSocketAPIIsSeparate(t *testing.T) {
 	if w.Code != 200 || w.Body.Len() < 4096 {
 		t.Fatal("backup unavailable")
 	}
+	if w := adminRequest(a, "GET", "http://localhost/health", "", nil); w.Code != 204 || w.Body.Len() != 0 {
+		t.Fatalf("admin health: %d %s", w.Code, w.Body)
+	}
 	server := httptest.NewServer(a.handler())
 	defer server.Close()
 	response, err := http.Get(server.URL + "/health")
@@ -736,6 +739,22 @@ func TestServeRequiresPublicHostname(t *testing.T) {
 	} {
 		if validHostname(host) != valid {
 			t.Errorf("validHostname(%q) = %v", host, !valid)
+		}
+	}
+}
+
+func TestListenAddressStaysOnLoopbackUnlessAllowed(t *testing.T) {
+	for _, tc := range []struct {
+		listen string
+		allow  bool
+		valid  bool
+	}{
+		{"127.0.0.1:17483", false, true}, {"[::1]:17483", false, true},
+		{"0.0.0.0:17483", false, false}, {"192.168.64.2:17483", false, false},
+		{"0.0.0.0:17483", true, true}, {"localhost:17483", true, false}, {"127.0.0.1", true, false},
+	} {
+		if err := checkListenAddress(tc.listen, tc.allow); (err == nil) != tc.valid {
+			t.Errorf("checkListenAddress(%q, %v) = %v", tc.listen, tc.allow, err)
 		}
 	}
 }

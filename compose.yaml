@@ -1,0 +1,56 @@
+services:
+  sync:
+    build:
+      context: .
+      args:
+        VERSION: ${FREDDIE_SYNC_VERSION:-container}
+    # Share the Linux host's loopback interface with the existing nginx.
+    # The application still only binds to 127.0.0.1:17483.
+    network_mode: host
+    command:
+      - serve
+      - --host
+      - ${FREDDIE_SYNC_HOST:?Set FREDDIE_SYNC_HOST in .env}
+      - --public-url
+      - ${FREDDIE_SYNC_PUBLIC_URL:-}
+      - --data
+      - /state/data
+    restart: unless-stopped
+    stop_grace_period: 40s
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    pids_limit: 64
+    ulimits:
+      nofile:
+        soft: 1024
+        hard: 1024
+    volumes:
+      # Data and backups share one mount, so backups hard-link immutable blobs
+      # instead of copying them; link(2) fails across mount points.
+      - type: bind
+        source: ./var
+        target: /state
+        bind:
+          create_host_path: false
+      # Also at the default socket path, so admin commands need no --socket.
+      - type: bind
+        source: ./var/run
+        target: /run/freddie-sync
+        bind:
+          create_host_path: false
+    healthcheck:
+      # Exercises the private admin socket and database without a shell or curl.
+      test: ["CMD", "/usr/local/bin/freddie-sync", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"

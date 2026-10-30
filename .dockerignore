@@ -1,0 +1,8 @@
+# Only source files needed by the build enter the context. This excludes local
+# credentials, persistent data, backups, and Git history.
+*
+!go.mod
+!go.sum
+!*.go
+!admin/
+!admin/**
